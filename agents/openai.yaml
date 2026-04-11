@@ -1,0 +1,4 @@
+interface:
+  display_name: "CTF Heap Challenge Solve"
+  short_description: "Version-aware heap solver with modern endgame routing."
+  default_prompt: "Use $ctf-pwn-heap-challenge-solve to solve this glibc heap pwn challenge by recovering allocator facts, mapping primitives to compatible techniques, and choosing an endgame that matches the shipped libc."
