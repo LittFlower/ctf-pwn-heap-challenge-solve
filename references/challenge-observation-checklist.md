@@ -2,6 +2,8 @@
 
 Use this file before naming any technique. Normalize the program surface first, then map it to allocator facts.
 
+Use it to capture target-specific observations and unknowns, not to store reusable anti-patterns or solver lessons. Put recurring mistakes in `gotchas.md` instead.
+
 ## Menu surface
 
 - Record every operation and its real effect: `malloc`, `calloc`, `realloc`, `free`, show-only read, append, offset edit, or full rewrite.
@@ -9,7 +11,7 @@ Use this file before naming any technique. Normalize the program surface first, 
 - Record whether any menu action defers work to a worker thread, queue, signal handler, or background callback instead of acting entirely in the calling thread.
 - Record whether the index table lives in `.bss`, heap, stack, or mixed storage.
 - Record whether freed pointers stay reachable through stale indexes, copied aliases, or secondary containers.
-- Record whether a stale slot table or pointer array can later be overwritten or repointed. A writable `.bss` slot table can become an address router rather than just bookkeeping.
+- Record whether a stale slot table or pointer array can later be overwritten or repointed. A writable `.bss` slot table can become an address router (`pointer router`) rather than just bookkeeping.
 - If a slot table may become a router, record which slot keeps a non-zero size or other writable-state bit after the retarget. A repointed pointer with a dead length field may still be unreadable or uneditable through the menu.
 - Record whether allocation size, edit size, and shown length are independently controlled.
 - Record whether a user-controlled knob such as `key` or difficulty changes all later allocation sizes.

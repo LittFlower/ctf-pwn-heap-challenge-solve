@@ -26,7 +26,7 @@ Use exact shipped libc whenever possible. Use this file to avoid applying an old
 | `2.36+` | Local notes treat `fflush(stderr)` from `__malloc_assert` as gone | Do not assume `kiwi` triggerability without checking the shipped libc. |
 | `2.37+` | Local notes treat classic `__malloc_assert` path as gone | Treat classic `kiwi` as dead unless the target ships an older patched build. |
 | `2.39` | Local notes track newer stdout and IO_FILE layouts | Re-derive offsets for `apple`, `cat`, `snake`, and related IO routes instead of copying old offsets. |
-| `2.42` | Local notes treat tcache semantics as changed again | Verify exact minor behavior before relying on a 2.42-only poisoning shortcut. |
+| `2.42` | Local notes treat tcache semantics as changed again; `tcache_perthread_struct` may no longer sit at the heap top | Verify exact minor behavior before relying on a 2.42-only poisoning shortcut, and re-check whether `tcache_metadata_hijacking` or other metadata-side paths replaced older heap-top assumptions. |
 | `2.43` | Maintained `how2heap` examples drop fastbin dup family | If a plan depends on `fastbin_dup*`, verify exact version and check whether a newer substitute exists. |
 
 ## Endgame defaults by era

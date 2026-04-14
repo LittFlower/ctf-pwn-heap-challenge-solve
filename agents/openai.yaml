@@ -1,4 +1,4 @@
 interface:
   display_name: "CTF Heap Challenge Solve"
-  short_description: "Version-aware heap solver with modern endgame routing."
-  default_prompt: "Use $ctf-pwn-heap-challenge-solve to solve this glibc heap pwn challenge by recovering allocator facts, mapping primitives to compatible techniques, separating local-only validation from real in-band leak routes, and choosing an endgame that matches the shipped libc."
+  short_description: "Version-aware glibc heap solver for overlap, double-free, no-free, leakless, and modern endgame routes."
+  default_prompt: "Use $ctf-pwn-heap-challenge-solve to solve this glibc heap pwn challenge by recovering allocator facts, mapping primitives such as UAF, double free, off-by-null overlap, largebin or other bin-metadata corruption, no-free top-chunk paths, leakless metadata abuse, or pointer-router style stale-slot reuse to compatible how2heap families, separating local-only validation from real in-band leak routes, and choosing an FSOP or exit-linked endgame that matches the shipped libc."

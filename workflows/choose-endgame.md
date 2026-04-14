@@ -19,13 +19,18 @@ Use this workflow after the heap phase yields a stable leak, overlap, arbitrary 
    - If the binary uses worker threads or lazy thread startup, record which thread performs each relevant `malloc` or `free` and whether the first thread creation perturbs the heap layout you plan to exploit.
 2. Choose the most stable compatible finish.
    - Prefer stdout or stderr recovery when it already solves the challenge.
-   - If a known-address read/write route can repoint a global slot table or stale pointer table, check `environ` and stack-return finishes before heavier FILE chains.
+   - If a known-address read/write route can repoint a global slot table or stale pointer table, treat that structure as a `pointer router` and check `environ` and stack-return finishes before heavier FILE chains.
    - Do not freeze the plan at a debugger-assisted or `/proc`-assisted known-base finish unless the task is explicitly local-only. Use that proof to rank the next in-band leak or router step that removes the same-host dependency.
    - For FILE / libio routes, re-derive the actual consumer path in the shipped libc before choosing fields. Do not carry over `stderr-0x10`, `fp+0x68`, or historical callback-slot assumptions from older notes.
    - If an already-live stream object reaches a direct indirect-call site such as `_codecvt`, a wide vtable, or a callback-like field, rank that route ahead of full fake-`FILE` placement.
    - Prefer modern FILE or exit-linked routes over outdated hook-based finishes on modern libc.
    - If a stack pointer is reachable and a clean return site exists, value saved-RIP overwrite over more assumption-heavy FSOP when the version and trigger surface allow it.
-   - Treat `house of kiwi` as a trigger helper, not a full finish by itself.
+   - Prefer `house of apple2` as the default modern FILE route when `_IO_list_all` or a FILE pointer is already writable.
+   - Treat `house of cat` as a fallback only when `apple2` is blocked and the shipped libc still offers an acceptable seekoff-side trigger story.
+   - Treat `house of emma` as higher-cost: require explicit point-guard control and stderr routing before ranking it above simpler FILE or exit-linked finishes.
+   - Prefer `house of banana` when a `link_map` or fini-style exit-linked surface is already naturally reachable from the proved primitive.
+   - Treat `house of kiwi` as a trigger helper, not a full finish by itself. If `__malloc_assert -> fflush(stderr)` still exists on the shipped libc, treat that assert path as the reason kiwi stays viable.
+   - Treat `malloc_printerr -> strlen@GOT`-style abort routes as narrow old-target helpers only. Use them when GOT writes are truly available and the weak argument control is still enough for the challenge.
 3. Check placement needs before coding.
    - Record where fake FILE, ROP data, or target pointers must land.
    - Confirm any required writable offsets and later trigger calls.

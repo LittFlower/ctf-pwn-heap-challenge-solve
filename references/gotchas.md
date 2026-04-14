@@ -2,6 +2,8 @@
 
 Use this file for recurring pitfalls that are expensive and not obvious from the target alone.
 
+Use it for reusable failure patterns and anti-assumptions, not for one challenge's raw first-pass facts. Put target-specific surface notes in `challenge-observation-checklist.md` instead.
+
 ## Transport and normalization
 
 - Fixed-width menu parsing can invalidate exploit transport. If the target mixes `read(..., 0x10)` and `atoi`, prove the command protocol before debugging heap geometry.

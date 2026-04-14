@@ -2,6 +2,12 @@
 
 Use this file after identifying a plausible allocator primitive. The remaining hard part is often leak recovery, trigger routing, or the final control-flow pivot.
 
+If the source material is still using old names such as `house_of_roman`, open `how2heap-legacy-writeup-labels.md` first, then return here to evaluate the actual leak and endgame demands.
+
+If the notes use underscore forms such as `house_of_apple2`, `house_of_cat`, `house_of_emma`, `house_of_banana`, or `house_of_kiwi`, treat them as the same endgame routes described here and keep the decision focused on trigger surface and version fit rather than naming style.
+
+If the notes say `无 leak` or `no leak`, keep the route in this file and decide whether the real branch is modern metadata-side low-leak control, a historical leakless chain such as `house_of_roman`, or simply a challenge that still needs a leak despite the wording.
+
 ## Leak routing
 
 - Heap leak before `2.34`: read freed tcache metadata when possible; the stored key may reveal heap structure directly.
@@ -18,6 +24,11 @@ Use this file after identifying a plausible allocator primitive. The remaining h
 - `house_of_rust`: use when a TSU-style path can place libc data into tcache metadata and partial overwrites are acceptable.
 - Partial-pointer brute force: reserve for cases where only low bits are missing and the retry budget is realistic.
 - A guessed-PIE oracle is not a finish by itself. Measure the real retry throughput before committing to brute force; if missing entropy is still roughly 24 bits, treat it as a blocker, not a plan.
+- If the source material says `无 leak` or `no leak`, verify whether it really means metadata-side low-leak steering or only "no easy leak was found yet."
+
+## Historical leakless route
+
+- `house_of_roman`: keep only for old hook-era libc where fake fastbins, unsorted-bin writes, and relative overwrites can still drive a leakless brute-force finish. Treat it as a historical combined chain, not as a modern default.
 
 ## No-`free` routing
 
@@ -34,6 +45,7 @@ Use this file after identifying a plausible allocator primitive. The remaining h
 - If the binary uses `scanf` or stdio input after corruption, consider stdin or FILE-based arbitrary-write pivots.
 - If `environ` or another stack pointer becomes readable and a clean return site remains, treat stack-return ROP as a first-class endgame candidate.
 - If `__malloc_assert -> fflush(stderr)` still exists on the shipped libc, treat `house of kiwi` as a trigger surface into later IO exploitation.
+- If the real trigger is allocator abort into `malloc_printerr` on an old writable-GOT target, treat `strlen@GOT`-style retargets as narrow trigger helpers only. They can provide a call edge, but their argument control is usually much weaker than normal FSOP or stack-return routes.
 
 ## Modern endgame defaults
 
