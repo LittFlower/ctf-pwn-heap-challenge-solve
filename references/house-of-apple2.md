@@ -18,6 +18,9 @@ Prefer this route when:
 
 Do not use this file as a substitute for exact version checks. Re-derive sensitive offsets from the
 shipped libc.
+Do not import historical fake-FILE base shifts or callback-slot folklore from old notes. Start from
+the shipped libc's real `fflush` / wide-file consumer path and derive the final indirect call from
+that path.
 
 ## Minimal prerequisites
 
@@ -48,7 +51,7 @@ At minimum, resolve these fields relative to the fake FILE base:
 | `_lock` | Must be readable / writable enough for the chosen route |
 | `_wide_data` | Often needed to keep the wide path coherent |
 | vtable | Must point at the intended FILE jump table |
-| secondary jump slot | May need to contain a gadget or function such as `svcudp_reply+26` |
+| verified indirect-call slot | Must match the actual slot the shipped libc dereferences on this path; often this lives under `_wide_data` rather than in the `FILE` object itself |
 
 Do not trust old offsets blindly. Derive them from the shipped libc and verify them in memory.
 
@@ -58,7 +61,7 @@ One practical pattern is:
 1. use a heap primitive such as largebin attack to overwrite `_IO_list_all`
 2. place fake FILE on heap
 3. point its vtable to `_IO_wfile_jumps` or another version-appropriate table
-4. use a jump target that pivots into a staged ROP / ORW region
+4. re-derive the actual indirect call reached by the shipped path, often through `_wide_data->_wide_vtable`, and place the pivot or call target there
 5. trigger exit or flush
 
 Treat the exact jump target as version-sensitive. The important part is not the historical name of

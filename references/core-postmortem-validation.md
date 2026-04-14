@@ -44,7 +44,7 @@ Then check, in this order:
   - `_lock`
   - `_wide_data`
   - vtable
-  - jump target such as `svcudp_reply+26`
+  - the exact indirect-call slot reached by the shipped libc path
 - Ask: do the critical offsets match the crafted payload?
 
 3. Staged data

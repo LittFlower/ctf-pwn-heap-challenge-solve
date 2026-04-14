@@ -19,6 +19,8 @@ Every non-trivial use of this skill should produce a result the user can audit.
   - when it is consumed
 - State the next validation step if full code execution is not complete yet.
 - Prefer a minimal exploit or exploit scaffold over a long unvalidated script.
+- If helper libraries auto-rebase symbols, say whether each critical target is still an offset or is already an absolute address. Sanity-check final write targets are canonical before blaming the primitive.
+- If a proof or finish depends on bases from `/proc`, a debugger, `io.libs()`, `ptrace`, `LD_PRELOAD`, `setarch`, TLS pointer-guard recovery, or other local process metadata, label it explicitly as a local-only validation path and state what still blocks the intended remote route.
 
 ## Failure-reporting output
 
@@ -33,5 +35,6 @@ Every non-trivial use of this skill should produce a result the user can audit.
 
 - Do not present speculative technique names as facts.
 - Separate what is proved from what is inferred.
+- Separate local validation from remote viability. A locally verified endgame that relies on debugger-assisted or `/proc`-assisted bases is not the same claim as a solved challenge path.
 - If a plan depends on an unproved transport, parser, or trigger assumption, call that out directly.
 - Prefer short, checkable claims that map back to glibc behavior, debugger output, or local reference files.

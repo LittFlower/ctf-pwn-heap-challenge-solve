@@ -41,6 +41,7 @@ Merge small files only when all three are true:
 - [ ] No workflow points to deleted references
 - [ ] No rule text is duplicated across multiple files
 - [ ] `references/gotchas.md` stays brief and scannable
+- [ ] Costly live-solve lessons are surfaced in routing or workflow checklists, not only stored in `references/`
 - [ ] `agents/openai.yaml` still describes the skill accurately after structural changes
 
 ## Completion Criteria
