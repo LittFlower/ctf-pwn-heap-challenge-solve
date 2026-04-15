@@ -4,6 +4,7 @@ Use this when a heap plan depends on:
 - forging a fake chunk from an overlapping/UAF-controlled write
 - largebin insertion or largebin attack
 - making one write serve two roles at once, such as modifying `A->bk_nextsize` while also forging `B`
+- using a single largebin write to both retarget a global pointer and deliver a fake FILE or other staged heap object
 
 The point is to solve the geometry before guessing the grooming.
 
@@ -48,6 +49,7 @@ For every candidate overlap, write:
 | `B.prev_size` | if needed | stale edit into fake `B` | `?` | `_int_free` / consolidation |
 | `B.size` | fake size or pre-coalesce size | stale edit into fake `B` | `?` | `_int_free` |
 | `B.end` | real chunk boundary | derived | n/a | `_int_free` |
+| carrier base | written heap address or interior pointer that target will later dereference | derived from `B` | n/a | later FILE / router / metadata consumer |
 
 If two fields overlap, stop and decide one of:
 - the same 8-byte value is valid for both roles
@@ -71,6 +73,16 @@ Examples:
 
 If the plan relies on later coalescing, identify the exact tail chunk and why it survives until `free(B)`.
 
+For single-write largebin-plus-carrier plans, also solve:
+- whether the address written by largebin is the exact carrier base or an interior pointer
+- whether the target consumer expects `carrier`, `carrier+0x10`, or another shifted pointer
+- whether the same staged bytes can simultaneously satisfy largebin metadata and later fake-object layout
+
+Useful algebra pattern from one-write largebin fengshui:
+- choose menu sizes `x`, `y`, `z` so one stale write can both reach `A->bk_nextsize` and carve a valid `B`
+- if the write must leave a forward tail, solve it explicitly with equations such as `2*y-z = 0x30` or `2*y-2*x = 0x20`
+- treat those equalities as geometry constraints, not as article-specific magic constants
+
 ## 5. Check the `free(B)` conditions
 
 Before testing the full exploit, verify:
@@ -90,12 +102,24 @@ For largebin attack chains, verify separately:
 - the forged or coalesced `B` enters the same largebin index as `A`
 - nextsize ordering assumptions hold
 - the write target matches glibc's largebin insertion write site
+- if the write target is `mp_.tcache_bins`, the chosen chunk size really maps to an out-of-range `tc_idx` that becomes newly valid after the write
 - whether a same-bin write can be achieved with two real chunks before attempting fake-`B` geometry
+- if the target is `_IO_list_all`, `stderr`, a slot table, or another pointer-bearing object, the written heap address is already meaningful for the later consumer
+- if one write must both edit `A` and stage `B`, the edit width and offsets still reach every required field without a second pass
+
+For one-write FILE routes, verify separately:
+- the largebin write lands on a pointer that the later stdio walk will actually dereference
+- the inserted chunk `B` is already the fake FILE carrier or points into it without another arbitrary write
+- the carrier layout leaves room for `_wide_data`, `_lock`, vtable, and the staged call / pivot data after satisfying heap metadata needs
+- no later allocator action destroys the carrier before `exit` or flush
 
 If you hit:
 - `largebin double linked list corrupted (nextsize)`
   - re-check nextsize ordering and chain invariants first
   - for glibc `2.30+`, also re-check whether the chosen `B` is really the smaller same-bin insertion case from the modern largebin pattern
+- a crash when reclaiming the surviving attacked chunk after a successful largebin write
+  - re-check whether `bk_nextsize` still points into the write target
+  - for same-bin helper layouts, reclaim the smaller helper chunk first and repair the survivor back to `fd_nextsize = bk_nextsize = self` before requesting it
 - `double free or corruption (!prev)`
   - re-check fake boundary landing and consolidation expectations
 - `invalid pointer`
@@ -124,6 +148,7 @@ Prove these in order:
 2. `A` is in largebin when expected.
 3. `free(B)` or later insertion makes `B`/coalesced `B` land in the same bin.
 4. the intended largebin write occurs.
-5. only then continue to FSOP / house / ROP.
+5. the written heap address already names a usable carrier object for the next stage.
+6. only then continue to FSOP / house / ROP.
 
 If step `n` fails, return to the invariant table instead of extending the exploit script.

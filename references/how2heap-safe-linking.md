@@ -60,6 +60,7 @@ This is often the practical modern branch when no clean heap leak exists.
 - If you can read a mangled pointer and the route needs a real heap relation first, bias toward `decrypt_safe_linking`.
 - If you need an arbitrary protected pointer without a heap leak and can recycle metadata through the same key, bias toward `safe_link_double_protect`.
 - If the challenge has no clean heap leak and already offers overlap or metadata reach, bias away from plain `tcache_poisoning` and toward metadata-side routes.
+- Out-of-range tcache poisoning after an `mp_.tcache_bins` write still obeys normal tcache return rules: aligned target, forged `next`, non-zero count, and `e->key = 0` at `target+0x8`.
 - If the route is still mostly about duplicate return, stash behavior, or wilderness steering, leave this file and go back to the corridor selector that owns that primitive.
 
 ## Version guidance

@@ -65,6 +65,9 @@ Use when:
 
 This is often cheaper than a full FSOP setup and may recover stack or libc directly.
 
+Practical note:
+- if the returned pointer comes from tcache poisoning, remember the target must be aligned and `tcache_get` clears `target+0x8`; for pointer-bearing objects, a shifted aligned target such as `environ-0x18` may preserve the field you actually want to read better than the exact symbol address
+
 ### Stdio partial leaks
 
 Use when:

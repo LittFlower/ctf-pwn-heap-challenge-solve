@@ -21,5 +21,6 @@ Use this reference when a heap-labeled challenge turns out to corrupt a live str
 ## Finish Selection Notes
 
 - Prefer already-live indirect-call sites such as `_codecvt`, wide vtables, or stream callbacks over full fake-`FILE` placement when the writable field window already reaches them.
+- If `_wide_data` is the clean writable seam, compare Apple2-style routes first. If `_codecvt` is the cleaner seam and `_wide_data` should stay default, compare Apple3-style routes first.
 - Treat pointer-mangled stdio finishes as separate from known-base stability. `setarch -R` fixing object addresses does not imply TLS `pointer_guard` stability.
 - If the only working proof needs `ptrace`, `/proc`, `setarch`, `LD_PRELOAD`, or other same-host instrumentation, label it as local-only and state what blocks the intended remote path.

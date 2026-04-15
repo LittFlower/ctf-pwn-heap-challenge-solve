@@ -50,6 +50,8 @@ If the notes say `无 leak` or `no leak`, keep the route in this file and decide
 ## Modern endgame defaults
 
 - Prefer `house of apple2` as the default modern FSOP route when you can corrupt `_IO_list_all` or a FILE pointer.
+- If the only arbitrary write is a single `largebin attack`, prefer `apple2` layouts where the written heap address already points to the fake FILE carrier. Do not spend the only write on `_IO_list_all` unless the carrier is already staged at that heap address.
+- If `_wide_data` is hard to control cleanly but `_codecvt` is writable, compare an Apple3-style route before abandoning FILE-based finishes.
 - Prefer `house of cat` only when `apple2` is blocked and the version-specific conditions are acceptable.
 - Treat `house of emma` as higher-cost: it usually needs point-guard control plus stderr routing.
 - Treat `house of banana` as strong when a `link_map` or fini-array style surface is already reachable.

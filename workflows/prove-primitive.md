@@ -17,8 +17,10 @@ Use this workflow when a candidate heap route exists but the allocator primitive
 2. Build the invariant table.
    - Record field, required value, write source, write offset from edit base, and consume site.
    - For fake-free or same-write largebin chains, resolve `A->bk_nextsize`, forged `B.prev_size`, forged `B.size`, `B.end`, and the next real header.
+   - For off-by-null backward-consolidation routes, resolve forged `prev_size`, fake chunk `size`, repaired `fd->bk` / `bk->fd`, the free that will consume the corruption, and whether that free bypasses tcache.
 3. Validate geometry before coding.
    - Check alignment, minimum chunk size, real-boundary landing point, coherent next-chunk metadata, and any tail chunk needed for forward consolidation.
+   - For leakless `poison_null_byte` layouts, verify that any padding or tcache-metadata warmup still leaves the fake chunk header at the low-byte landing you intend to repair.
    - If two required roles overlap and cannot share one value, treat that as a blocker.
 4. Use the shortest deterministic probe.
    - Prefer a small script that proves one transition over a full exploit attempt.

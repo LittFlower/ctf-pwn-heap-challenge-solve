@@ -38,6 +38,7 @@ Use it to capture target-specific observations and unknowns, not to store reusab
 - If there is no user-reachable `malloc` or `free` path but a libc-managed object is writable, map the write window to exact object fields and stop treating the task as ordinary chunk grooming.
 - Record whether you can create guard chunks to prevent consolidation.
 - Record whether you can force large allocations that move unsorted chunks into large bins.
+- Record whether one stale or overlapping write window can simultaneously reach largebin metadata such as `bk_nextsize` and the body or header of a later carrier chunk. This decides whether one-write largebin-plus-FILE routes are even plausible.
 
 ## Leak surface
 

@@ -30,16 +30,25 @@ Use it for reusable failure patterns and anti-assumptions, not for one challenge
 - Fake-free plans fail most often on boundary landing, next-chunk coherence, or overlapping metadata roles. Write the invariant table before building the payload.
 - If two metadata roles need the same bytes and cannot share one valid value, treat that as a blocker rather than a payload-tuning problem.
 - A forged chunk that is meant to coalesce later must still satisfy the metadata checks seen at the earlier `free` site.
+- A modern `large_bin_attack` is not unlocked by largebin residency alone. If no UAF, overlap, or stale edit can still mutate the freed largebin chunk's nextsize metadata, drop the route and re-rank candidates.
+- A successful largebin write does not imply the attacked largebin chunk is safe to reclaim. If its `bk_nextsize` still points into the write target, the next largebin walk may die before unlink; reclaim the smaller same-bin helper first and repair the survivor's nextsize self-loop.
 
 ## Version and technique selection
 
 - `how2heap` file absence is a signal. If the exact version-technique pair is missing, assume allocator rules changed until proved otherwise.
+- Leakless off-by-null overlap and `house_of_einherjar` are not interchangeable. If you do not start with a known fake-chunk base and only need overlap, the first proof target is usually `poison_null_byte`-style backward consolidation.
+- A single `largebin attack` does not buy two stages. If that is your only arbitrary write, `_IO_list_all` retarget and fake-FILE placement must usually be the same heap-fengshui decision, not two separate steps.
+- A writable FILE path does not automatically mean Apple2. If `_wide_data` corruption destabilizes the path but `_codecvt` remains writable, forcing Apple2 can be the wrong branch; preserve default `_wide_data` and compare Apple3.
 - Safe-linking, tcache counts, and hook removal are route-selection constraints, not cleanup details to patch later.
+- If a no-leak off-by-null layout fails only on newer libc, check alignment drift and tcache-metadata warmup before declaring a new version family. Local how2heap keeps the maintained `poison_null_byte` path alive on `2.42`; `2.43` is where the official example adds warmup.
 - Known-base stability is not pointer-mangling stability. `setarch -R` or repeated `FILE *` addresses do not imply a stable TLS `pointer_guard`.
 - `/proc/self/maps`, `/proc/self/mem`, debugger memory, or `io.libs()` are not leak primitives. They are acceptable to validate a local hypothesis, but if the challenge still needs PIE, libc, stack, or heap addresses, keep searching for an in-band recovery route instead of letting same-host metadata become the exploit plan.
+- A fixed local offset is not the same as a remotely recovered target. If the exploit only works because the local stack slot, return address delta, or libc interior offset was copied from one host run, keep treating it as a local proof and remove that dependency.
 - A guessed-base oracle must be costed, not admired. If the only non-local route still leaves about 24 bits of PIE or libc entropy and each full attempt is slow, classify it as blocked instead of calling it a brute-force fallback.
 - Tcache is per-thread, not per-process. A chunk freed by a worker thread does not automatically become reusable by main-thread `malloc`; if a poison plan assumes that, prove the cross-thread bridge explicitly.
 - A stale alias can still bridge threads. If a worker frees a chunk but the main thread can still `free` the same stale pointer once, that second free may be the shortest route into a main-thread tcache poison.
+- Overwriting `mp_.tcache_bins` only widens which `tc_idx` values glibc accepts. It does not create a non-zero count, a second list node, or a bypass for target alignment.
+- On poisoned OOB tcache returns, `tcache_get` clears `e->key`. If the goal is a pointer leak, target a shifted aligned address that keeps the real pointer field away from `target+0x8`.
 - On modern libc, hook-centric thinking is often stale. Prefer stdout, stderr, FILE, or exit-linked routes when the trigger surface supports them.
 - Exotic exit-linked targets are not free wins. If clean `exit` already walks stdio state, do not sink time into `__exit_funcs` or similar surfaces before comparing the simpler trigger.
 

@@ -35,6 +35,7 @@ The local `README.md` records these challenge-facing anchors for this corridor:
 
 Use when:
 - a single null byte is enough to clear or shrink the next chunk metadata
+- no heap leak or known fake-chunk base exists yet, so the overlap must be synthesized from residual largebin / unsorted state
 - the real goal is backward consolidation into a forged free chunk
 - the first proof target is overlap, not an immediate chosen-pointer return
 
@@ -43,11 +44,13 @@ What the local modern example actually does:
 - repairs `fd` / `bk` via residual largebin pointers
 - uses an off-by-null into the victim size field
 - frees the victim so backward consolidation unlinks the fake chunk and places the merged result in unsorted
+- proves overlap first, then treats any later poisoning or leak stage as a separate problem
 
 Typical hidden conditions:
 - fake chunk `size == next_chunk->prev_size`
 - unlink checks must be repaired before the consolidation free
 - low two-byte rewrite assumptions can force heap alignment or padding
+- the free that consumes the corrupted victim must bypass tcache and actually reach backward consolidation
 
 ### `house_of_einherjar`
 
@@ -101,6 +104,7 @@ Typical hidden conditions:
 ## Decision rules
 
 - If the only writable byte is a null byte and you do not yet have a known fake-chunk base, compare `poison_null_byte` before `house_of_einherjar`.
+- If there is no heap leak and overlap itself is the first proof target, bias harder toward `poison_null_byte` even when solver notes mention `einherjar`.
 - If the solve already has a heap leak and the real goal is a controlled later `malloc` result, bias toward `house_of_einherjar`.
 - If the overwrite is a full size rewrite on a chunk already in unsorted, bias toward `overlapping_chunks`.
 - If the overwrite changes where a later `free` thinks the next chunk begins, bias toward `overlapping_chunks_2`.
@@ -109,6 +113,8 @@ Typical hidden conditions:
 
 - `2.29+`: expect extra scaffolding or outright dead ends for `overlapping_chunks` and `overlapping_chunks_2`.
 - Modern libc: `poison_null_byte` and `house_of_einherjar` remain the primary null-byte family, but they now depend on stricter fake-chunk and tcache behavior.
+- Local regression says the maintained `glibc_2.41/poison_null_byte.c` still works on `2.42`, so do not treat `2.42` as a hard boundary for the official family.
+- `2.43`: the maintained `poison_null_byte` example adds a tcache-metadata warmup before padding. Re-check low-byte alignment and fake-chunk landing after that warmup before blaming a new family split.
 - When the exact version has both `poison_null_byte` and `house_of_einherjar`, use the stronger finish requirement to choose:
   - overlap validation -> `poison_null_byte`
   - chosen-pointer / poisoning bridge -> `house_of_einherjar`

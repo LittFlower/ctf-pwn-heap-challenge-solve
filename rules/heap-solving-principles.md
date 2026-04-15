@@ -33,9 +33,11 @@ These rules govern every use of this skill, regardless of glibc version or endga
 
 - Prefer the technique that needs the fewest hidden assumptions.
 - Prefer the workflow change that reduces repeated work without removing a validation step. Faster routing is good; weaker proof obligations are not.
-- Do not substitute local process metadata for a challenge leak. `/proc`, debugger state, and helper-library base discovery are validation aids; if addresses still matter to the intended route, keep building an in-band leak plan.
+- The default success criterion is a remotely viable exploit path, not merely a locally reproducible proof. Unless the challenge is explicitly local-only or the remote runtime fixes the bases, keep solving until PIE, libc, heap, and stack dependencies are recovered in-band or dynamically from the target itself.
+- Do not substitute local process metadata for a challenge leak. `/proc`, debugger state, helper-library base discovery, and fixed same-host offsets are validation aids; if addresses still matter to the intended route, keep building an in-band leak plan.
 - Prefer real-chunk routes over fake-free geometry when both satisfy the same leak and endgame needs.
 - Before committing to libc hooks, tcache poisoning, or FSOP, check whether a stale heap object already contains a callable field such as a callback, vtable, or function pointer. If a same-size reuse can rewrite that object and a later program action calls the field, prefer the direct application-level control-flow route.
+- Do not commit to `large_bin_attack` unless you can still write the freed largebin chunk's metadata after it is freed, usually through UAF, overlap, or a stale edit. A chunk merely reaching largebin is not enough.
 - If a plan depends on a heap leak, writable target offset, later `free` or `exit` trigger, or bin-ordering assumption, write that dependency down before coding.
 - If dynamic results contradict the current model, replace the model quickly instead of brute-forcing around it.
 - Do not move to full code execution until a primitive has been proved in isolation.

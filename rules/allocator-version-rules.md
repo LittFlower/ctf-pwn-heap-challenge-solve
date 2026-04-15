@@ -22,6 +22,7 @@ These rules cover glibc-version facts that must be resolved before choosing a te
 - If the exact file is missing, compare the nearest older and newer versions and identify the allocator rule that changed.
 - Treat technique absence in local `how2heap` as a warning that the pattern may no longer be sound for that version.
 - Copy invariants and version constraints from `how2heap`, not old prose or outdated writeups.
+- For off-by-null overlap, distinguish an official family breakpoint from a local layout breakpoint. A custom leakless geometry may fail on a newer libc because padding, heap-top placement, or tcache-metadata warmup changed even when the maintained `poison_null_byte` example still works.
 
 ## Route-selection rules
 
