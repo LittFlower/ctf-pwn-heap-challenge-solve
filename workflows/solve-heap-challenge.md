@@ -8,6 +8,7 @@ Use this workflow for first-pass solving of a Linux glibc heap-pwn challenge.
 - `rules/allocator-version-rules.md`
 - `rules/output-contract.md`
 - `references/challenge-observation-checklist.md`
+- `references/solver-fast-paths.md`
 - `references/version-delta.md`
 - `references/primitive-version-map.md`
 
@@ -16,6 +17,7 @@ Use this workflow for first-pass solving of a Linux glibc heap-pwn challenge.
 1. Normalize the challenge surface.
    - Translate menu verbs into exact allocator actions.
    - Record whether the program really exposes `free`, `calloc`, or `realloc`, or whether the route is fundamentally a no-`free` (`no free`) surface.
+   - Use `references/solver-fast-paths.md` as a hard stop against over-reading: after surface normalization, reduce the task to one corridor before opening deeper family references.
    - If the write primitive targets a long-lived libc or application object such as `FILE`, `_IO_wide_data`, or `_codecvt` instead of chunk user data, switch immediately from chunk-grooming language to object-layout and trigger-path modeling.
    - Record real requested sizes, real chunk sizes, edit width, truncation behavior, pointer lifetime after `free`, whether `show` is one-shot (`single-shot show`), and what later action can trigger corruption.
    - Record whether any attacker-relevant allocation or free happens in a worker thread and whether the first worker startup is lazy.
@@ -24,6 +26,7 @@ Use this workflow for first-pass solving of a Linux glibc heap-pwn challenge.
    - Identify heap-resident application objects, especially structs that pair user data pointers with callbacks, vtables, or function pointers.
    - If a live stream object is writable, map the reachable offset window to exact libc fields and embedded substructures before choosing a technique family.
    - If a live stream object, `_IO_wide_data`, or `_codecvt` state is writable, open `references/libio-object-corruption.md` before continuing with heap-family selection.
+   - If the writable stream state is really an already-live `FILE *` such as `stdin`, `stdout`, or another open stream, or if the notes already say `_fileno`, stdin/stdout arbitrary read/write, or old `FSOP`, open `references/libio-stdio-primitives.md` before comparing Apple-family or historical `_IO_str_*` routes.
    - If the writable stream state favors `_wide_data` or `_codecvt` but not both, open `references/house-of-apple-family.md` before committing to an Apple2-style fake FILE layout.
    - Identify global slot tables or pointer arrays that may be writable later through a heap primitive. A stale `.bss` slot table can become a known-address read/write router.
    - If a slot table may become a router, record not only the pointer fields it can repoint but also which slot will still drive the next `edit` or `show`, whether its tracked size can drop to zero, and the exact write width that survives the retarget.
@@ -32,6 +35,7 @@ Use this workflow for first-pass solving of a Linux glibc heap-pwn challenge.
    - Identify the exact glibc version when possible.
    - If exact version is unclear, keep a short candidate set and note version-sensitive differences.
    - Record tcache, safe-linking, hook availability, per-thread allocator ownership for relevant chunks, and useful exit, stdio, or assert trigger surfaces.
+   - Record which runtime address classes the current candidate route will need: PIE, libc, heap, stack, pointer guard, or none. If any class is still missing, treat that as an explicit leak obligation rather than an invisible future assumption.
    - Keep local validation aids separate from the real route. `/proc`, debugger bases, `io.libs()`, and fixed same-host offsets can prove a hypothesis locally, but they do not replace an in-band leak or dynamic recovery step when the challenge still needs runtime addresses on a remote target.
    - Default to a remotely viable exploit chain. Do not call the challenge solved while critical targets still depend on local-only base recovery, debugger-visible state, or offsets that were not recovered from the challenge surface itself.
 3. Translate the bug into allocator primitives.
@@ -73,15 +77,18 @@ Use this workflow for first-pass solving of a Linux glibc heap-pwn challenge.
    - Between Apple-family candidates, rank the branch that preserves more default libc state: `_wide_data`-first when that member is cleanly writable, `_codecvt`-first when `_wide_data` should stay default.
    - On threaded targets, rank same-thread reuse or explicit cross-thread bridge plans ahead of poison routes that silently assume process-wide tcache behavior.
 6. Route around common dead ends early.
-   - If there is no direct `free`, prioritize top-chunk or `sysmalloc` paths such as `house_of_tangerine`.
+   - If there is no direct `free`, prioritize top-chunk or `sysmalloc` paths such as `house_of_tangerine`, but keep the route named `sysmalloc_int_free` until the freed wilderness becomes a reachable tcache-poison or chosen-pointer bridge instead of merely a freed bin chunk.
    - If `calloc` is reachable, value stash-dependent paths such as `fastbin_reverse_into_tcache`.
    - If there is no heap leak on `2.32+`, avoid plain `tcache_poisoning` unless you can decode safe-linking or pivot through metadata or leakless routes.
    - If `show` is single-shot, value single-chunk unsorted / largebin leaks and stdout-based leaks above long grooming plans.
+   - Count a stdout-based leak here only when some later stdio output path still survives. Raw `write` / `send`-only output does not by itself consume staged `stdout FILE` state.
    - If there is no `edit` but repeated UAF or reallocation exists, create overlap or a self-edit pattern first, then poison.
 7. Choose the first proof target.
    - Pick the smallest claim that can be validated deterministically: overlap, pointer recovery, arbitrary allocation, arbitrary write, or stable leak.
    - Prefer proving pointer-table routing into a known target such as `stdout`, `stderr`, `environ`, or a stack slot before escalating to a heavier finish. It often validates primitive strength faster than a full FSOP chain.
    - If a local-only proof used `/proc`, debugger memory, helper metadata, or fixed local offsets to recover addresses, set the next proof target to the smallest in-band leak or dynamic targeting step that replaces one of those dependencies.
+   - Keep temporary proof scripts narrow, but decide early how the proved leak, heap primitive, and trigger will fold back into one final remote exploit file.
+   - If you still cannot name one proof target after reading multiple corridor references, stop and switch to `workflows/reroute-stuck-solve.md`.
    - For stream-object routes, prefer proving the exact libc consumer path with breakpoints in the shipped libc before building the final endgame payload.
    - If the candidate depends on fake-free or largebin geometry, switch to `workflows/prove-primitive.md` with the required invariant table.
    - For one-write largebin FILE routes, the first proof target is not just "_IO_list_all changed." Prove that the written heap address already names a usable carrier chunk for the fake FILE.
@@ -89,11 +96,13 @@ Use this workflow for first-pass solving of a Linux glibc heap-pwn challenge.
    - Check the exact `glibc_<version>/technique.c` file first.
    - If the technique is missing for that version, inspect the nearest older and newer versions to identify what patch or check invalidated it.
    - Treat file absence as a signal. `how2heap` only keeps variants that still make sense for that version.
+   - For `house_of_tangerine`, validate the maintained version-specific proof points explicitly: page-aligned top-size corruption, `freed_size = (new_top_size - FENCEPOST) & MALLOC_MASK`, safe-linking needs on `2.32+`, and `2.42+/2.43` target-chunk or tcache-transfer behavior.
    - Name failed allocator checks explicitly: count>0, cleared `key`, `target+0x18` writability, fake-size equality, 0x100 overlap alignment, or 0x1000 top-chunk alignment.
 9. Choose the finish only after the primitive is stable.
    - Once the heap phase yields leak, arbitrary allocation, arbitrary write, or overlap, pivot into the binary-specific control path.
    - Do not force an outdated `__malloc_hook` or `__free_hook` plan on modern libc.
    - Prefer the most stable modern finish that matches the trigger surface: stdout leak recovery, `house of apple2`, `house of cat`, `house of kiwi` as a trigger only, or exit-linked targets such as `tls_dtor_list` and `link_map`.
+   - Before declaring success, collapse temporary leak probes, geometry harnesses, and finish stubs into one remote-capable exploit file. Local helper scripts may remain only as optional validation aids, never as required dependencies for the remote run.
    - If leak or endgame routing is the hard part, switch to `workflows/choose-endgame.md`.
    - If the process aborts inside glibc, switch to `workflows/debug-allocator-failure.md`.
 
@@ -105,7 +114,9 @@ Use this workflow for first-pass solving of a Linux glibc heap-pwn challenge.
 - If a technique depends on a heap leak, say so explicitly and stop pretending it is leakless.
 - If the challenge does not expose direct `free`, consider top-chunk and `sysmalloc` paths before overfitting to bin attacks.
 - If the plan depends on `target+0x18` being writable, `count[idx] > 0`, or a later call to `fflush`, `puts`, `scanf`, `exit`, or `free`, write that dependency down before coding.
+- If the planned stdin-field route depends on later input, name the exact surviving consumer. Raw `read` alone is not a valid staged `stdin FILE` consumer.
 - If the plan still depends on local-only bases or fixed same-host offsets, it is not the final route yet. Keep the dependency explicit and keep solving.
+- If the planned exploit still needs a second script, a manual debugger copy step, or a `/proc` lookup to run remotely, it is not the final route yet.
 - If a primitive only works because of a bypass in `how2heap`, copy the invariant, not the prose.
 
 ## Completion Checklist
@@ -118,6 +129,8 @@ Use this workflow for first-pass solving of a Linux glibc heap-pwn challenge.
 - [ ] Candidate technique chains ranked
 - [ ] First proof target chosen
 - [ ] Endgame deferred until the primitive is stable
+- [ ] Required runtime address classes written down and matched to in-band leaks or a proof that they are unnecessary
+- [ ] Final remote exploit convergence plan identified
 
 ## Escape Conditions
 

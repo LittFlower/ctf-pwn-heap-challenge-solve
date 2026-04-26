@@ -25,6 +25,7 @@ If the observed bug or allocator primitive is already known and you only need th
   `tcache_dup`, `tcache_poisoning`, `house_of_botcake`, `house_of_io`, `tcache_metadata_poisoning`, `tcache_metadata_hijacking`, `tcache_relative_write`, `safe_link_double_protect`, `house_of_water`
   Use when the challenge centers on UAF, double free, freed-chunk edits, or modern tcache metadata abuse.
   Treat `tcache_perthread_struct` hijack wording as an entry into this corridor, then split it into historical `house_of_io`, modern metadata takeover, or leakless metadata-side control.
+  Use `house-water-and-stash-fengshui.md` when `house_of_water` is blocked on helper-bin sizes, fake metadata placement, or `2.42+` tcache metadata drift.
   Use `how2heap-freelist-primitives.md` when plain poisoning, key-bypass poisoning, and metadata-side control are all plausible.
 
 - Fake-free and House of Spirit routes:
@@ -37,6 +38,7 @@ If the observed bug or allocator primitive is already known and you only need th
   Treat spaced writeup labels such as `tcache stash unlink` as the same stash-assisted mixed-bin family.
   Use when you can corrupt `fd`/`bk`, sort chunks through unsorted or large bins, or turn bin insertion into a write.
   Use `how2heap-bin-attacks.md` for the repo-backed first cut, then `how2heap-bin-write-primitives.md` for the write-vs-return split.
+  Use `house-water-and-stash-fengshui.md` when the branch is TSU, TSU+, or TSU++ and the blocker is smallbin tail position, tcache count, or fake target layout.
   Use `how2heap-bin-write-primitives.md` when the real question is whether the first proof target is a write or a returned fake chunk.
 
 - Historical mixed relative-overwrite chains:
@@ -106,4 +108,4 @@ If the observed bug or allocator primitive is already known and you only need th
 - Use `how2heap-wilderness-and-arena.md` when the route lives in top chunk, `sysmalloc`, or fake-arena logic.
 - Use absence as evidence: if a technique is gone in later directories, assume a mitigation or consistency check matters until proven otherwise.
 - Keep the `how2heap` philosophy in the exploit: prove one allocator primitive at a time with concrete state checks.
-- Remember that `how2heap` mostly stops at allocator behavior. Pair it with `references/leak-and-endgame-map.md` when the remaining challenge is leak recovery, no-`free` routing, or modern FSOP.
+- Remember that `how2heap` mostly stops at allocator behavior. Pair it with `references/leak-and-endgame-map.md` when the remaining challenge is leak recovery, no-`free` routing, or modern FSOP. If the source labels really say `_fileno`, stdin/stdout arbitrary read/write, or old `FSOP`, route through `references/libio-stdio-primitives.md` before assuming a modern Apple-family or generic endgame split.

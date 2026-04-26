@@ -3,6 +3,7 @@
 Use this file when a modern FILE / libio finish is plausible, but the real question is which `house of apple` branch still fits the writable fields and heap-fengshui budget.
 
 This file is for branch selection and constraint routing. Keep exact fake-FILE field work in `house-of-apple2.md` and exact libc-object reasoning in `libio-object-corruption.md`.
+If the writable seam is really stdin/stdout field corruption or the notes explicitly say `_fileno`, stdin/stdout arbitrary read/write, or old `FSOP`, leave this file and open `libio-stdio-primitives.md` first.
 
 ## Why this split exists
 

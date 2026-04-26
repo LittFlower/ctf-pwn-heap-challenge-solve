@@ -4,7 +4,7 @@ Use this file when the challenge obviously lives in unsorted, smallbin, largebin
 
 If the source material is still using old mixed-bin names such as `house_of_storm`, open `how2heap-legacy-writeup-labels.md` first, then return here for the repo-backed first cut.
 
-If the notes say `tcache stash unlink` or `tcache stash unlink+`, treat that wording as the local `tcache_stashing_unlink_attack` branch, then return here to decide whether the first stable effect is the write, the returned fake chunk, or both together.
+If the notes say `tcache stash unlink`, `tcache stash unlink+`, or `tcache stash unlink++`, treat that wording as the local `tcache_stashing_unlink_attack` branch, then return here to decide whether the first stable effect is the write, the returned fake chunk, or both together. Open `house-water-and-stash-fengshui.md` when the blocker is the exact smallbin position, tcache drain count, or plus/plus-plus target layout.
 
 If the notes use spaced forms such as `large bin attack`, `unsorted bin attack`, or `house of lore`, treat them as the same bin families described here and keep the split focused on write-first versus return-first behavior rather than naming style.
 

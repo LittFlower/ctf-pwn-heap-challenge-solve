@@ -26,7 +26,14 @@ Use it to capture target-specific observations and unknowns, not to store reusab
 - Record whether fixed-width `read` returns after a short send or blocks until the whole width arrives. This determines whether a transport is full-clobber or low-clobber.
 - Record whether partial writes, offset writes, or length confusion exist.
 - Record whether output uses `puts`, `printf`, `write`, C++ streams, or buffered stdio.
+- If the hoped-for leak is through writable `stdout`, record whether later output still goes through stdio helpers like `puts`, `printf`, or `fwrite`, or only through raw `write`/`send`; raw fd writes do not consume `stdout FILE` state directly.
+- If the hoped-for leak is through writable `stdout`, record the effective buffering mode as observed in the shipped target path: full buffering, line buffering, or unbuffered. This changes whether the practical edge is `_IO_buf_end` or an `_IO_write_ptr`-collapsed line-buffered path.
+- If the hoped-for leak is through writable `stderr` or another already-live output stream, record the actual consuming helper or assert/flush path and do not assume stdout-style newline/full-buffer triggering without proving it on the shipped target.
+- If the hoped-for write primitive is through writable `stdin`, record whether later input still goes through stdio helpers like `scanf`, `fgets`, or `getc`, or only through raw `read`; raw fd reads do not consume `stdin FILE` state directly.
 - Record whether `show` is repeatable, single-shot, or format-string-like.
+- If a live stream object such as `stdin`, `stdout`, or another already-open `FILE *` is writable, record whether later code still consumes that same stream through stdio helpers, and whether the source material is really pointing at `_fileno`, stdin/stdout arbitrary read/write, or old `_IO_str_*` notes rather than a generic modern FILE route.
+- If `_fileno` redirection is in play, record whether the desired target fd is already open in the process and which later stdio helper still reads from or writes to that same live stream object.
+- If stdout-style partial leakage is in play, record what actually forces the later flush or overflow: newline, line-buffering, full buffer, explicit `fflush`, clean `exit`, or another stdio walk.
 
 ## Allocator surface
 
@@ -47,6 +54,7 @@ Use it to capture target-specific observations and unknowns, not to store reusab
 - Record whether stdout or stderr pointers are writable or re-pointable.
 - Record whether a writable global pointer table can be repointed to `stdout`, `stderr`, `environ`, or another already-live pointer-bearing object.
 - Record whether candidate leaks are in-band or only available through `/proc`, a debugger, `io.libs()`, or other same-host metadata. Do not confuse local validation visibility with a real challenge leak.
+- Record which runtime address classes the intended route actually needs: heap, libc, PIE, stack, pointer guard, or none. If a class is needed and not yet recoverable in-band, mark it as an open requirement instead of silently borrowing it from local metadata.
 - Record whether stack, PIE, or libc pointers are already present in a printable structure.
 - Record whether the program gives only one useful leak and whether it must recover both heap and libc.
 - If the leak budget is tiny, prefer candidate size sets that make one read recover both heap and libc.

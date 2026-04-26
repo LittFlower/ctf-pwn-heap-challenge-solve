@@ -6,6 +6,8 @@ If the source material is still using old mixed-bin names such as `house_of_stor
 
 If the notes use spaced forms such as `house of lore`, treat them as the same smallbin fake-chunk-return family described here and keep the split focused on first stable allocator effect rather than naming style.
 
+If the notes say `tcache stash unlink+` or `tcache stash unlink++`, open `house-water-and-stash-fengshui.md` after this file. The plus labels are stash-assisted target-layout variants: plain TSU writes through `bck->fd`, plus returns a fake tcache chunk, and plus-plus combines fake return with a second libc-pointer write.
+
 ## The split that matters
 
 Do not group these together as "bin attack":
@@ -100,6 +102,11 @@ Use when:
 - the first proof target mixes both effects: stash-assisted write plus fake-chunk return
 
 This is not just `house_of_lore` with a different name. The stash motion is part of the primitive.
+
+Heap fengshui split:
+- plain `tcache stash unlink` corrupts the smallbin node selected by `tcache_count + position = 8` and proves a libc/bin-pointer write
+- `tcache stash unlink+` corrupts the node selected by `tcache_count + position = 7` and proves a fake chunk can be linked into tcache
+- `tcache stash unlink++` uses the plus layout but also prepares the fake chunk's `bk` so `bck->fd = bin` writes a libc/bin pointer to a second target
 
 ### `house_of_storm`
 

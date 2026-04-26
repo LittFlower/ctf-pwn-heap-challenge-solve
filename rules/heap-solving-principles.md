@@ -5,6 +5,7 @@ These rules govern every use of this skill, regardless of glibc version or endga
 ## Core model
 
 - Treat each challenge as three linked problems: recover allocator facts, prove one stable primitive, and choose an endgame that matches the shipped libc and trigger surface.
+- Treat temporary proof harnesses as disposable. The finished solve should collapse back into one remote-capable `exp` file unless the task is explicitly analysis-only.
 - Start from exact allocator facts, not from a favorite technique name.
 - Treat `how2heap` as a versioned allocator-behavior atlas, not as copy-paste exploit stock.
 - Prefer the smallest technique family that satisfies the challenge's observable constraints.
@@ -34,7 +35,9 @@ These rules govern every use of this skill, regardless of glibc version or endga
 - Prefer the technique that needs the fewest hidden assumptions.
 - Prefer the workflow change that reduces repeated work without removing a validation step. Faster routing is good; weaker proof obligations are not.
 - The default success criterion is a remotely viable exploit path, not merely a locally reproducible proof. Unless the challenge is explicitly local-only or the remote runtime fixes the bases, keep solving until PIE, libc, heap, and stack dependencies are recovered in-band or dynamically from the target itself.
-- Do not substitute local process metadata for a challenge leak. `/proc`, debugger state, helper-library base discovery, and fixed same-host offsets are validation aids; if addresses still matter to the intended route, keep building an in-band leak plan.
+- Do not substitute local process metadata for a challenge leak. `/proc`, debugger state, helper-library base discovery, `io.libs()`, and fixed same-host offsets are validation aids; if addresses still matter to the intended route, keep building an in-band leak plan.
+- If the intended finish needs PIE, libc, heap, stack, or another runtime address class, write down exactly which classes are required and how the target itself will reveal each one. Hidden base assumptions are unfinished work.
+- Let local scripts fork during proof only when they isolate one transition cleanly. Before calling the task complete, merge the needed leak, heap, and trigger logic into the authoritative remote-capable exploit file.
 - Prefer real-chunk routes over fake-free geometry when both satisfy the same leak and endgame needs.
 - Before committing to libc hooks, tcache poisoning, or FSOP, check whether a stale heap object already contains a callable field such as a callback, vtable, or function pointer. If a same-size reuse can rewrite that object and a later program action calls the field, prefer the direct application-level control-flow route.
 - Do not commit to `large_bin_attack` unless you can still write the freed largebin chunk's metadata after it is freed, usually through UAF, overlap, or a stale edit. A chunk merely reaching largebin is not enough.

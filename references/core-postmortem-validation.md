@@ -5,6 +5,8 @@ Use this when:
 - the exploit already produces a crash or core after a likely successful heap or FSOP stage
 - you need to prove post-execution facts such as `_IO_list_all` overwrite, fake FILE placement, or a finished ORW chain
 
+If the route is really stdin/stdout field corruption, `_fileno` redirection, or another old stdio-field path, validate the live stream fields that should have changed before defaulting to fake-FILE or Apple-style postmortem checks.
+
 The point is not just “open the core and look around”. The point is to answer a small set of yes/no
 questions that close the proof loop after a partial-success crash.
 
@@ -32,6 +34,17 @@ For a modern FSOP or heap-to-ROP chain, record:
 - the expected ROP / ORW base
 - the expected output buffer
 - the expected post-success crash shape
+
+For old stdio-field routes, record instead:
+- the expected stream object (`stdin`, `stdout`, or another live `FILE *`)
+- the expected redirected fd or staged read/write window
+- the exact fields that should have changed, such as `_fileno`, `_IO_write_base`, `_IO_write_ptr`, `_IO_buf_base`, or `_IO_buf_end`
+- the expected consuming stdio helper and intended read/write direction
+- the expected side effect before the crash, such as redirected input, leaked output, or a completed write window
+
+For historical `_IO_str_finish` / `_IO_str_overflow` claims, record in addition:
+- the exact old-libc window being claimed
+- whether the route depends on old `_s._allocate_buffer` / `_s._free_buffer` assumptions rather than modern `malloc/free`
 
 Then check, in this order:
 

@@ -17,6 +17,7 @@ Use this workflow after a substantive solve, debugging loop, or skill maintenanc
 | New allocator pitfall or recurring dead end | `references/gotchas.md` and, if costly, the relevant workflow checklist |
 | Changed answer contract | `rules/output-contract.md` |
 | Live solve revealed a faster recurring task split, routing shortcut, or first-pass question | `SKILL.md` Common Tasks routing and the relevant workflow or checklist |
+| Routing change needs evidence that it improved real solves | `references/solver-benchmark-suite.md`, `workflows/run-solver-regression.md`, and the touched task routes |
 
 Threshold: update the docs if the lesson would cause a future agent to choose the wrong heap model, technique family, or finish on a similar challenge.
 
@@ -29,6 +30,7 @@ Run this pass after every substantive solve or discarded exploit path:
 - Did the skill assume real allocator activity existed before checking whether the writable surface was a live libc object such as `FILE` / libio state?
 - Did a costly pitfall live only in `references/` when it should have blocked the mistake earlier in a workflow or `SKILL.md`?
 - Did the solve expose a repeatable fast path that deserves its own Common Task entry?
+- Did the solve get stuck because no workflow told the agent when to stop reading and reroute?
 - Would the proposed optimization preserve the same proof standard, or does it only look faster because it skips a validation step?
 
 If any answer is yes, treat that as an efficiency regression even if the challenge was eventually solved.

@@ -3,6 +3,7 @@
 Use this file when the heap phase is plausible but the remaining blocker is still "where do heap, libc, PIE, or stack addresses come from in-band?"
 
 If the notes say `single-shot show`, `one-shot show`, or `仅一次show`, keep the leak plan in this corridor and bias toward one-read unsorted / largebin disclosure or partial stdio leaks instead of long multi-read grooming.
+If the source material says `_fileno`, stdin/stdout arbitrary read/write, or old `FSOP`, open `libio-stdio-primitives.md` before deciding whether the current leak step is really a stdio partial leak, a redirected fd use, or a wider historical FILE route. For `_fileno`, do not count the route as live until the target fd is already open and a later stdio helper still consumes that same live stream object in the intended read or write direction.
 
 ## What this file is for
 
@@ -57,6 +58,12 @@ Use `house_of_water`, `tcache_relative_write`, or other metadata routes when:
 
 This is the modern "leak by steering metadata" branch.
 
+Open `house-water-and-stash-fengshui.md` when `house_of_water` is the candidate. Its first proof target is overlapping `tcache_perthread_struct`; the leak plan only starts after metadata control is real.
+
+Practical split:
+- if the overlap only needs `counts[]` / `entries[]` control, stay in the normal metadata-steering branch
+- if `tcache_perthread_struct` itself can be forged into a larger chunk and freed out of tcache, treat it as a fake-free unsorted leak corridor: satisfy next-chunk coherence, free the forged struct into unsorted, and read the libc pointer back from the clobbered struct head
+
 ### Pointer router leaks
 
 Use when:
@@ -81,7 +88,9 @@ Treat these as leak routes first, not necessarily final execution routes.
 - If the current primitive already reaches a known-address router, prefer `stdout`, `stderr`, or `environ` leaks before growing a heavier heap chain.
 - If the only readable heap metadata is mangled, open `how2heap-safe-linking.md` before abandoning the leak.
 - If the route already requires largebin or unsorted state, prefer leaking from that same state instead of inventing a second leak mechanism.
+- If `tcache_perthread_struct` already sits under your overlap and can be enlarged past tcache, rank "forge per-thread struct -> free to unsorted -> read libc pointer" before heavier FILE-only leak plans.
 - If the source material says `single-shot show`, assume the leak budget is one useful read and rank largebin, unsorted, or partial-stdout routes ahead of longer heap-only grooming plans.
+- Only count a partial-stdout route when later output still passes through stdio helpers. Raw `write` / `send`-only output is not enough to consume a staged `stdout FILE` leak window by itself.
 - If the only available addresses come from `/proc`, debugger memory, `ptrace`, or helper-library metadata, label the route local-only and keep searching for an in-band replacement.
 
 ## Reporting language

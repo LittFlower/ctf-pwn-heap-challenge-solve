@@ -56,8 +56,19 @@ Use when:
 - the challenge is modern and no ordinary `free` is needed
 - top-chunk corruption plus later allocations can force `sysmalloc` to free the wilderness
 - the final goal is a tcache-style chosen-pointer return
+- size algebra can make `(new_top_size - FENCEPOST) & MALLOC_MASK` land in a later reusable tcache or smallbin size
+- after `sysmalloc`, you still have an adjacent OOB, UAF, or stale edit that reaches the freed wilderness entry
+- on `2.32+`, you also have a heap leak or another safe-linking-compatible way to produce the poisoned pointer
 
-The first stable proof target is usually "freed wilderness became a poisonable small tcache-sized chunk," not FSOP.
+Treat this as `sysmalloc_int_free` plus a second proof obligation: the old wilderness must not only get freed, it must become a reachable tcache-poison bridge that can return a chosen pointer.
+
+The first stable proof target is usually "freed wilderness became a poisonable small tcache-sized chunk," not FSOP or a generic unsorted leak.
+
+Version notes:
+- `2.26-2.31`: original tcache window. Once the freed wilderness really lands in a tcache-usable size and remains writable, ordinary tcache poisoning is the usual finish.
+- `2.32-2.41`: the route is still live, but safe-linking turns the heap leak or metadata-side bypass into an explicit prerequisite.
+- `2.42+`: re-check the maintained local `house_of_tangerine` example instead of copying a `2.39`-era script. The landing target may need valid chunk metadata, and the released wilderness may not reach tcache the same way older notes expect.
+- `2.43`: the maintained example removes the helper `free(malloc(...))` trick by repeating the wilderness-free cycle and then allocating once more to move the released smallbin chunks into tcache.
 
 ### `house_of_orange`
 
@@ -67,6 +78,7 @@ Use when:
 - and the finish is an old-school FSOP chain
 
 Treat this as historical. On modern libc, Orange is mostly a lineage reference for "wilderness freed by `sysmalloc`" rather than a drop-in plan.
+If Orange still looks live on an old target, open `libio-stdio-primitives.md` before inheriting generic `FSOP` notes so `_IO_list_all`, `_fileno`, and historical `_IO_str_*` subroutes do not get collapsed together.
 
 ### `house_of_mind_fastbin`
 
@@ -89,9 +101,10 @@ This is the deeper arena-hijack branch, not just a top-chunk trick.
 ## Decision rules
 
 - If no direct `free` exists and the route still wants a later returned pointer, compare `sysmalloc_int_free` and `house_of_tangerine` before anything else.
+- If all you have proved is that `sysmalloc` freed the old wilderness into a reusable bin, keep the route named `sysmalloc_int_free` until you also prove the tcache-poison bridge.
 - If the target is old and the plan is "one evil malloc walks the top chunk to my destination," bias toward `house_of_force`.
-- If the route frees the old wilderness and then pivots into modern poisoning, bias toward `house_of_tangerine`.
-- If the route frees the old wilderness and then pivots into historical `_IO_list_all` FSOP, bias toward `house_of_orange`.
+- If the route frees the old wilderness and then pivots into modern tcache poisoning or another chosen-pointer return, bias toward `house_of_tangerine`.
+- If the route frees the old wilderness and then pivots into historical `_IO_list_all` FSOP, bias toward `house_of_orange`, then reopen `libio-stdio-primitives.md` so old `_IO_str_*`, `_fileno`, and live-stream field routes do not collapse into one label.
 - If the route depends on `NON_MAIN_ARENA`, fake `heap_info`, or `thread_arena`, stay in the arena branch: `house_of_mind_fastbin` or `house_of_gods`.
 
 ## Version guidance
@@ -99,6 +112,8 @@ This is the deeper arena-hijack branch, not just a top-chunk trick.
 - `< 2.29`: `house_of_force` is still a real candidate.
 - `< 2.26`: classic `house_of_orange` is historically relevant; later libc changes kill the old abort path.
 - `>= 2.26`: if the wilderness route is still live, prefer `sysmalloc_int_free` and `house_of_tangerine` over Orange-era assumptions.
+- `2.32+`: for classic Tangerine-style tcache poisoning, heap leak or safe-linking-compatible metadata control is no longer optional.
+- `2.42+`: validate target-chunk metadata and post-free tcache transfer behavior against the maintained local example before trusting older writeups.
 - `< 2.27`: arena-hijack routes like `house_of_gods` remain candidates; later versions require much more skepticism.
 
 ## Reporting language

@@ -10,11 +10,13 @@ If the writeup or notes say `house_of_kauri` or describe a stash-assisted fastbi
 
 If the notes say `house_of_atum`, treat that wording as a fastbin-to-tcache writeback route whose first useful effect is usually metadata reach near `chunk-0x10`, not plain chosen-pointer return.
 
-If the notes say `tcache_perthread_struct` hijack or `tcache_perthread_struct劫持`, treat that wording as a metadata-control route first, then split it into `house_of_io`, `house_of_water`, `tcache_metadata_poisoning`, `tcache_metadata_hijacking`, or `tcache_relative_write`.
+If the notes say `tcache_perthread_struct` hijack or `tcache_perthread_struct劫持`, treat that wording as a metadata-control route first, then split it into `house_of_io`, `house_of_water`, `tcache_metadata_poisoning`, `tcache_metadata_hijacking`, `tcache_relative_write`, or a forged-perthread fake-free that frees the struct itself into unsorted.
 
 If the notes use spaced forms such as `house of botcake`, `house of water`, or `house of io`, treat them as the same freelist families described here and keep the split focused on key-check bypass versus metadata-side control.
 
 If the notes say `fastbin reverse into tcache`, treat that wording as the same fastbin-to-tcache writeback route described here and keep the split focused on allocator-managed metadata writes rather than chosen-pointer return.
+
+If the notes say `house_of_water` and the main blocker is heap fengshui, open `house-water-and-stash-fengshui.md` after this file. That file owns the smallbin metadata layout, helper-bin sizes, and `2.42+` offset drift details.
 
 ## The split that matters
 
@@ -119,14 +121,15 @@ Treat it as an alias route inside the same branch: `house_of_atum` names the met
 
 ### Leakless metadata-side control
 
-Use `house_of_io`, `house_of_water`, `tcache_metadata_poisoning`, `tcache_metadata_hijacking`, or `tcache_relative_write` when:
+Use `house_of_io`, `house_of_water`, `tcache_metadata_poisoning`, `tcache_metadata_hijacking`, `tcache_relative_write`, or forged-perthread fake-free routes when:
 - raw freelist poisoning is blocked or leakless operation matters more than a simple chosen-pointer return
 - the real exploit surface is `tcache_perthread_struct` or tcache-derived metadata writes
 
 Split them by what you control first:
 - historical UAF into the tcache management struct itself on `2.31-2.33` -> `house_of_io`
 - metadata takeover through overlap / fake metadata staging -> `house_of_water`
-- direct overwrite into `tcache_perthread_struct` -> `tcache_metadata_poisoning`
+- direct overwrite into `tcache_perthread_struct` for counts or entries control -> `tcache_metadata_poisoning`
+- forged `tcache_perthread_struct` size plus fake next-chunk headers so the struct itself can be freed into unsorted for a libc leak -> forged-perthread fake-free
 - post-`2.42` overflow into later-initialized tcache metadata -> `tcache_metadata_hijacking`
 - out-of-range `tc_idx` style relative write foundation -> `tcache_relative_write`
 
@@ -140,10 +143,13 @@ Split them by what you control first:
 - If the source material says `house_of_kauri`, translate it into a size-class-change tcache double-free bypass before comparing it with `house_of_botcake`.
 - If the source material says `house_of_atum`, translate it into fastbin-to-tcache writeback before comparing it with overlap or pure poisoning families.
 - If the source material says `tcache_perthread_struct` hijack, keep it in the metadata-control branch before comparing it with plain chosen-pointer return.
+- If the overlapped `tcache_perthread_struct` has a real chunk header and you can enlarge it past tcache sizes, consider a fake-free route: forge the struct chunk large, satisfy next-chunk coherence, free it into unsorted, and leak libc from the overwritten struct head before planning any post-leak poison.
+- If the fake-free route frees the per-thread struct itself, budget a repair step for `counts[]` before assuming later same-thread tcache allocations behave normally again.
 - If the route needs a full tcache bin before the double free becomes useful, keep it in the double-free-bypass branch first instead of collapsing it into plain `tcache_poisoning`.
 - If the first stable claim is "allocator writes a heap pointer or large counter into my target," bias toward `fastbin_reverse_into_tcache` or `tcache_relative_write`, not plain poisoning.
 - If the route is blocked specifically on protected-pointer math or production, leave this file and open `how2heap-safe-linking.md`.
 - If the challenge has no heap leak on `2.32+`, bias away from raw `tcache_poisoning` and toward `house_of_water` or other metadata-side routes.
+- If `house_of_water` is live, prove the returned chunk overlaps `tcache_perthread_struct` before planning the leak or endgame. The route is a metadata-control primitive first.
 - If the source material says `house_of_io`, treat it as a historical tcache-metadata route, not as a FILE / FSOP endgame.
 - If the route depends on fake non-main arena state, leave this file and open `how2heap-wilderness-and-arena.md`.
 
@@ -153,6 +159,7 @@ Split them by what you control first:
 - `2.26-2.28`: `tcache_dup` is still a historical candidate; later tcache hardening forces you toward `house_of_botcake`-style bypasses or other modern routes.
 - Late `2.27+`: key-check bypasses split into stale-size-class tricks, fastbin-to-tcache restaging, or overlap/consolidation restaging instead of raw `tcache_dup`.
 - `2.31-2.33`: `house_of_io` is a historical metadata-control reference for arbitrary return through the tcache management struct.
+- On glibc builds where `tcache_perthread_struct` sits in a normal heap chunk with a reusable size field, the same struct can also act as a fake large chunk: overlap it, forge a larger size, free it out of tcache into unsorted, and use the resulting unsorted pointers as a libc leak.
 - `2.32+`: safe-linking changes plain `tcache_poisoning` from "overwrite `fd`" into "supply a correct protected pointer."
 - `2.42+`: `tcache_metadata_hijacking` matters because tcache metadata may no longer sit at the top of the heap.
 - Modern leakless routes usually favor metadata control over naive freelist corruption.

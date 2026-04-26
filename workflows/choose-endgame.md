@@ -6,6 +6,8 @@ Use this workflow after the heap phase yields a stable leak, overlap, arbitrary 
 
 - `rules/allocator-version-rules.md`
 - `rules/output-contract.md`
+- `references/heap-address-leaks.md`
+- `references/libio-stdio-primitives.md`
 - `references/leak-and-endgame-map.md`
 - `references/house-of-apple2.md`
 
@@ -15,17 +17,25 @@ Use this workflow after the heap phase yields a stable leak, overlap, arbitrary 
    - Record whether the binary reliably reaches `free`, `exit`, `fflush`, stdout or stderr activity, assert paths, or another FILE-consuming path.
    - Treat clean `exit(0)` and other normal-termination paths as possible implicit `fflush` triggers when the exploit plan targets stdio state.
    - Record whether `rewind`, `fseek`, `fclose`, wide-conversion helpers, or other stream operations can consume corrupted `FILE` / libio subfields directly.
+   - If an already-live `FILE *` such as `stdin`, `stdout`, or another open stream is writable, separate `_fileno` retarget, stdin-backed arbitrary-write, stdout-backed arbitrary-read, and historical `_IO_str_*` dispatch before defaulting to a generic `FSOP` plan.
    - Before committing to heavier exit-linked targets such as `__exit_funcs`, `tls_dtor_list`, or `link_map`, compare them against the clean-exit stdio walk and prefer the trigger with fewer hidden assumptions.
    - If the binary uses worker threads or lazy thread startup, record which thread performs each relevant `malloc` or `free` and whether the first thread creation perturbs the heap layout you plan to exploit.
 2. Choose the most stable compatible finish.
    - Prefer stdout or stderr recovery when it already solves the challenge.
    - If a known-address read/write route can repoint a global slot table or stale pointer table, treat that structure as a `pointer router` and check `environ` and stack-return finishes before heavier FILE chains.
    - Do not freeze the plan at a debugger-assisted or `/proc`-assisted known-base finish unless the task is explicitly local-only. Use that proof to rank the next in-band leak or router step that removes the same-host dependency.
+   - If the finish needs PIE, libc, heap, stack, or another runtime base, keep the smallest compatible in-band leak route alive inside the same final exploit instead of treating manual base recovery as "already solved."
    - For FILE / libio routes, re-derive the actual consumer path in the shipped libc before choosing fields. Do not carry over `stderr-0x10`, `fp+0x68`, or historical callback-slot assumptions from older notes.
+   - If a later stdio read is still available, compare `_fileno` retarget and stdin-backed arbitrary-write before heavier fake-FILE placement.
+   - If the candidate route is `_fileno` retarget, prove both prerequisites before committing: the desired fd is already open in-process, and the later stdio helper still consumes that same live stream object.
+   - If later input is only raw `read` or another non-stdio path, do not count that as a surviving stdin FILE trigger unless some separate stdio read path still remains.
+   - If a later stdio flush or output is still available, compare stdout-backed arbitrary-read as the leak step before assuming the first useful FILE route must already be code execution.
+   - If later output is only raw `write` / `send` or another non-stdio path, do not count that as a surviving stdout FILE trigger unless some separate stdio flush or buffered output still remains.
    - If an already-live stream object reaches a direct indirect-call site such as `_codecvt`, a wide vtable, or a callback-like field, rank that route ahead of full fake-`FILE` placement.
    - Prefer modern FILE or exit-linked routes over outdated hook-based finishes on modern libc.
    - If a stack pointer is reachable and a clean return site exists, value saved-RIP overwrite over more assumption-heavy FSOP when the version and trigger surface allow it.
    - Prefer `house of apple2` as the default modern FILE route when `_IO_list_all` or a FILE pointer is already writable.
+   - Keep historical `_IO_str_finish` / `_IO_str_overflow` notes behind an old-libc check. Do not import them into modern Apple-family routing just because the source says `FSOP`.
    - Treat `house of cat` as a fallback only when `apple2` is blocked and the shipped libc still offers an acceptable seekoff-side trigger story.
    - Treat `house of emma` as higher-cost: require explicit point-guard control and stderr routing before ranking it above simpler FILE or exit-linked finishes.
    - Prefer `house of banana` when a `link_map` or fini-style exit-linked surface is already naturally reachable from the proved primitive.
@@ -34,7 +44,9 @@ Use this workflow after the heap phase yields a stable leak, overlap, arbitrary 
 3. Check placement needs before coding.
    - Record where fake FILE, ROP data, or target pointers must land.
    - Confirm any required writable offsets and later trigger calls.
+   - If the final exploit uses pwntools, set `context.binary` and `context.arch` before relying on packing helpers, shellcode, or ROP gadgets. Do not let a 64-bit target inherit a stale 32-bit context from an older script.
    - Sanity-check every computed absolute target before the final write. If `ELF.address` or `libc.address` is already set in pwntools, `ELF.sym[...]` is absolute; adding the base again can create non-canonical addresses and misleading `EFAULT` failures.
+   - Decide which file is the authoritative remote exploit. Temporary leak probes or debugger harnesses may survive for validation, but the winning leak, heap, and trigger logic must collapse into one remote-capable `exp` file before the task is complete.
    - If a slot-table rewrite is part of the finish, confirm the slot that performs the follow-up `edit` still has non-zero logical size and enough width after the retarget. A correct pointer with a dead size field is not a write primitive.
    - For `_codecvt` / gconv routes, prove whether `step_data` or conversion helpers overwrite bytes in the fake step before the indirect call. Do not park command strings or arguments there unless that survival was tested.
    - If the finish depends on tcache poisoning or same-size reuse, confirm that the allocation consuming the poisoned entry runs in the same thread that owns that tcache list.
@@ -44,6 +56,7 @@ Use this workflow after the heap phase yields a stable leak, overlap, arbitrary 
 5. Report the chosen finish and rejected alternatives.
    - Say why the chosen route matches the version and trigger surface.
    - Say whether the route is a real challenge path or only a local validation path that depends on bases from `/proc`, a debugger, `ptrace`, `LD_PRELOAD`, `setarch`, TLS pointer-guard recovery, or other local process metadata.
+   - Name the authoritative remote exploit file and whether any helper scripts remain proof-only.
    - Say why one or two discarded finishes were less stable or version-incompatible.
 
 ## Completion Checklist
@@ -51,7 +64,9 @@ Use this workflow after the heap phase yields a stable leak, overlap, arbitrary 
 - [ ] Trigger surface inventory recorded
 - [ ] Chosen finish tied to libc version and trigger surface
 - [ ] Placement constraints written down
+- [ ] Pwntools context initialized from the real target before architecture-sensitive helpers are used
 - [ ] Post-crash behavior interpreted correctly
+- [ ] Authoritative remote exploit file identified
 - [ ] Rejected finishes summarized briefly
 
 ## Escape Conditions

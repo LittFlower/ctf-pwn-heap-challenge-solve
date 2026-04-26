@@ -7,6 +7,7 @@ Use this reference when a heap-labeled challenge turns out to corrupt a live str
 - There is no meaningful attacker-controlled `malloc` / `free` workflow, but a write primitive reaches `FILE`, `_IO_wide_data`, `_codecvt`, or a stream wrapper.
 - The interesting trigger is `rewind`, `fseek`, `fflush`, `fclose`, wide conversion, or another stdio helper instead of allocator reuse.
 - Exact shipped libc layout matters more than bin geometry or `how2heap` coverage.
+- If the writable seam is really stdin/stdout field corruption or the notes explicitly say `_fileno`, stdin/stdout arbitrary read/write, or old `FSOP`, split first into `libio-stdio-primitives.md` before treating the route as a generic modern FILE-object corruption problem.
 
 ## First-Pass Proof Loop
 

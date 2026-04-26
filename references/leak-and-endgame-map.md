@@ -15,6 +15,7 @@ If the notes say `无 leak` or `no leak`, keep the route in this file and decide
 - Libc leak with normal `free`: unsorted or large-bin pointers remain the cleanest first choice.
 - Libc leak with one useful read: value single-chunk large-bin or unsorted leaks, or partial stdout corruption.
 - No easy libc leak: route through `house_of_water` or related tcache-perthread corruption to land a libc pointer in controlled metadata, then pivot into stdout.
+- If `tcache_perthread_struct` itself was forged and freed into unsorted for the libc leak, assume the leak step also corrupted `counts[]`. Repair the per-thread metadata before treating `environ` or another tcache-poison target as live.
 - If a writable slot table or stale pointer array can be retargeted, try routing it into `stdout`, `stderr`, `environ`, or another pointer-bearing object before assuming a full FSOP setup is required.
 - Do not count `/proc`, debugger bases, or helper-library metadata as leak routing. Use them only to validate a local hypothesis while you keep an in-band address-recovery plan alive.
 
@@ -32,8 +33,8 @@ If the notes say `无 leak` or `no leak`, keep the route in this file and decide
 
 ## No-`free` routing
 
-- `house_of_tangerine`: use when the program can keep allocating but never frees.
-- `sysmalloc_int_free`: use when top-chunk manipulation can still route allocator state into a reusable free path.
+- `house_of_tangerine`: use when the program can keep allocating but never frees, and the old wilderness can be turned into a tcache-style chosen-pointer return.
+- `sysmalloc_int_free`: use when top-chunk manipulation routes allocator state into a reusable free path, but the later tcache-poison bridge or chosen-pointer return is not proved yet.
 - Old `house_of_force`: keep only for pre-`2.29` targets that actually match the old wilderness assumptions.
 
 ## Trigger routing
@@ -43,7 +44,11 @@ If the notes say `无 leak` or `no leak`, keep the route in this file and decide
 - If the binary exits cleanly, treat exit-linked targets such as `_IO_list_all`, `tls_dtor_list`, or `link_map` as first-class candidates.
 - If the binary keeps printing or flushing, value stdout or FILE-based pivots.
 - If the binary uses `scanf` or stdio input after corruption, consider stdin or FILE-based arbitrary-write pivots.
+- If later input is only raw `read` or another non-stdio path, do not treat that alone as a surviving stdin FILE pivot trigger.
+- If the source material says `_fileno`, stdin/stdout arbitrary read/write, or old `FSOP`, open `libio-stdio-primitives.md` before ranking Apple-family routes against historical `_IO_str_*` dispatch.
+- If redirected fd use through `_fileno` already solves the challenge goal, keep it as the primary route instead of automatically escalating into a heavier Apple-family or generic FILE endgame.
 - If `environ` or another stack pointer becomes readable and a clean return site remains, treat stack-return ROP as a first-class endgame candidate.
+- After a per-thread-struct unsorted leak, `environ` plus saved-return overwrite is often the cleanest follow-up, but only if the later poison uses chunks outside the forged large-chunk span and the corrupted tcache metadata has been repaired first.
 - If `__malloc_assert -> fflush(stderr)` still exists on the shipped libc, treat `house of kiwi` as a trigger surface into later IO exploitation.
 - If the real trigger is allocator abort into `malloc_printerr` on an old writable-GOT target, treat `strlen@GOT`-style retargets as narrow trigger helpers only. They can provide a call edge, but their argument control is usually much weaker than normal FSOP or stack-return routes.
 

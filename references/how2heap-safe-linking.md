@@ -55,6 +55,8 @@ Use `house_of_water`, `tcache_metadata_poisoning`, `tcache_metadata_hijacking`, 
 
 This is often the practical modern branch when no clean heap leak exists.
 
+For `house_of_water`, continue into `house-water-and-stash-fengshui.md` before coding. The maintained examples are version-shaped: `2.32-2.41`, `2.42`, and `2.43` use different metadata placement and drain assumptions.
+
 ## Decision rules
 
 - If you can read a mangled pointer and the route needs a real heap relation first, bias toward `decrypt_safe_linking`.

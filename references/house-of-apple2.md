@@ -7,6 +7,7 @@ Use this after `house-of-apple-family.md` already says the route is really `appl
 
 This file is not a full history of FSOP. It is a compact operator checklist for modern glibc-style
 `apple2` routes.
+If the source material is really about `_fileno`, stdin/stdout arbitrary read/write, or historical `_IO_str_*` dispatch, leave this file and open `libio-stdio-primitives.md` first.
 
 If `_wide_data` is not the clean controllable seam, go back and compare `apple3` in `house-of-apple-family.md` instead of forcing this layout.
 
