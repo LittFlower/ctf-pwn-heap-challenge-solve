@@ -57,6 +57,7 @@ Use it for reusable failure patterns and anti-assumptions, not for one challenge
 - If you forge `tcache_perthread_struct` into a larger chunk and free it into unsorted for a libc leak, remember that unsorted `fd` / `bk` overwrites the struct head. Treat post-leak tcache state as corrupted until `counts[]` and related metadata are repaired.
 - TSU, TSU+, and TSU++ differ by smallbin position and target layout, not by a completely different allocator mechanism. Recompute `tcache_count + smallbin_tail_position` before changing payload bytes.
 - `house_of_water` offsets are version-shaped. Local how2heap uses one shape for `2.32-2.41`, a different `tcache_perthread_struct` placement for `2.42`, and another warmup/drain shape for `2.43`.
+- `smallbin attack` is not one proof target. Split it into House of Lore fake return, smallbin unlink write, TSU stash behavior, or backward-consolidation unsafe unlink before writing payloads.
 - A slot that aliases memory inside a forged large chunk stops being a valid follow-up chunk once that larger chunk is freed. Rebuild the next poison from storage outside the freed span instead of trusting the stale alias.
 - On poisoned OOB tcache returns, `tcache_get` clears `e->key`. If the goal is a pointer leak, target a shifted aligned address that keeps the real pointer field away from `target+0x8`.
 - On modern libc, hook-centric thinking is often stale. Prefer stdout, stderr, FILE, or exit-linked routes when the trigger surface supports them.

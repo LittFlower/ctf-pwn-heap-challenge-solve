@@ -8,6 +8,8 @@ If the notes use spaced forms such as `house of lore`, treat them as the same sm
 
 If the notes say `tcache stash unlink+` or `tcache stash unlink++`, open `house-water-and-stash-fengshui.md` after this file. The plus labels are stash-assisted target-layout variants: plain TSU writes through `bck->fd`, plus returns a fake tcache chunk, and plus-plus combines fake return with a second libc-pointer write.
 
+If the route is just called `smallbin attack`, open `smallbin-techniques.md` first. This file keeps the write-vs-return split, but the smallbin page owns same-size ordering, fake-list staging, tcache drain, and unsafe-unlink boundary checks.
+
 ## The split that matters
 
 Do not group these together as "bin attack":
@@ -60,6 +62,8 @@ Use when:
 - you can satisfy the smallbin hardening checks on both `bk` and the staged fake list
 
 This is the canonical smallbin-return family, especially when the end point is stack or another fake chunk.
+
+For detailed fake-list and tcache-drain checks, continue into `smallbin-techniques.md` before translating the example into a menu exploit.
 
 ### `large_bin_attack`
 

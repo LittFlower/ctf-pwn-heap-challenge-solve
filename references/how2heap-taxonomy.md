@@ -38,6 +38,7 @@ If the observed bug or allocator primitive is already known and you only need th
   Treat spaced writeup labels such as `tcache stash unlink` as the same stash-assisted mixed-bin family.
   Use when you can corrupt `fd`/`bk`, sort chunks through unsorted or large bins, or turn bin insertion into a write.
   Use `how2heap-bin-attacks.md` for the repo-backed first cut, then `how2heap-bin-write-primitives.md` for the write-vs-return split.
+  Use `smallbin-techniques.md` when same-size smallbin ordering, House of Lore fake return, smallbin unlink write, or unsafe-unlink boundary checks decide the route.
   Use `house-water-and-stash-fengshui.md` when the branch is TSU, TSU+, or TSU++ and the blocker is smallbin tail position, tcache count, or fake target layout.
   Use `how2heap-bin-write-primitives.md` when the real question is whether the first proof target is a write or a returned fake chunk.
 
@@ -104,6 +105,7 @@ If the observed bug or allocator primitive is already known and you only need th
 - Use `how2heap-freelist-primitives.md` when the route lives in fastbin / tcache / metadata freelists.
 - Use `how2heap-safe-linking.md` when the route lives in protected-pointer recovery, synthesis, or avoidance.
 - Use `how2heap-bin-attacks.md` when the route needs a repo-backed entry for unsorted / smallbin / largebin / stash families.
+- Use `smallbin-techniques.md` when a route depends on same-size smallbin return, smallbin unlink write, House of Lore, or smallbin-to-tcache stash movement.
 - Use `how2heap-bin-write-primitives.md` when the route lives in unsorted / smallbin / largebin / stash behavior.
 - Use `how2heap-wilderness-and-arena.md` when the route lives in top chunk, `sysmalloc`, or fake-arena logic.
 - Use absence as evidence: if a technique is gone in later directories, assume a mitigation or consistency check matters until proven otherwise.
